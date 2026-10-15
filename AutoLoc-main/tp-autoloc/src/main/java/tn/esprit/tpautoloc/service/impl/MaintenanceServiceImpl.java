@@ -1,0 +1,73 @@
+package tn.esprit.tpautoloc.service.impl;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import tn.esprit.tpautoloc.domain.Maintenance;
+import tn.esprit.tpautoloc.exception.ResourceNotFoundException;
+import tn.esprit.tpautoloc.repository.IMaintenanceRepository;
+import tn.esprit.tpautoloc.service.IMaintenanceService;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class MaintenanceServiceImpl implements IMaintenanceService {
+
+    private final IMaintenanceRepository maintenanceRepository;
+
+    @Override
+    public Maintenance create(Maintenance maintenance) {
+        if (maintenance.getIdMaintenance() != null) {
+            throw new IllegalArgumentException(
+                    "Une nouvelle maintenance ne doit pas avoir d'identifiant."
+            );
+        }
+
+        verifierDates(maintenance);
+
+        return maintenanceRepository.save(maintenance);
+    }
+
+    @Override
+    public Maintenance findById(Long id) {
+        return maintenanceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Maintenance", id));
+    }
+
+    @Override
+    public List<Maintenance> findAll() {
+        return maintenanceRepository.findAll();
+    }
+
+    @Override
+    public Maintenance update(Long id, Maintenance maintenance) {
+        Maintenance maintenanceExistante = findById(id);
+
+        verifierDates(maintenance);
+
+        maintenanceExistante.setDateDebut(maintenance.getDateDebut());
+        maintenanceExistante.setDateFin(maintenance.getDateFin());
+        maintenanceExistante.setDescription(maintenance.getDescription());
+        maintenanceExistante.setVehicule(maintenance.getVehicule());
+
+        return maintenanceRepository.save(maintenanceExistante);
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        if (!maintenanceRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Maintenance", id);
+        }
+
+        maintenanceRepository.deleteById(id);
+    }
+
+    private void verifierDates(Maintenance maintenance) {
+        if (maintenance.getDateDebut() != null
+                && maintenance.getDateFin() != null
+                && maintenance.getDateFin().isBefore(maintenance.getDateDebut())) {
+            throw new IllegalArgumentException(
+                    "La date de fin ne peut pas être antérieure à la date de début."
+            );
+        }
+    }
+}
